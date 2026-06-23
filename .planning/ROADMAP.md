@@ -14,54 +14,71 @@
 ## Phase Details
 
 ### Phase 1: External Attack Panel
+
 **Goal**: 外部用户可通过浏览器独立访问攻击模拟面板，选择攻击类型后一键发起，攻击请求真实打到 Docker nginx 并产生日志
 **Mode:** mvp
 **Depends on**: Nothing (first phase)
 **Requirements**: EXT-01, EXT-03, EXT-04, EXT-05
 **Success Criteria** (what must be TRUE):
+
   1. 外部用户通过浏览器访问攻击面板页面，看到可用攻击类型列表
   2. 用户选择攻击类型后点击发起，无需登录或额外配置即可完成攻击
   3. 攻击请求到达 Docker nginx 容器，access.log 中出现对应攻击记录，携带正确的攻击源 IP
   4. 攻击面板实时显示攻击状态流转：已发送 → 执行中 → 完成
-**Plans**: 2 plans
 
+**Plans**: 2 plans
 Plans:
+**Wave 1**
+
 - [ ] 01-01-PLAN.md -- Walking skeleton: external attack panel with SQL injection, real-time status, ngrok tunnel
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 01-02-PLAN.md -- Remaining attack types (XSS, CC flood, brute force) + attack history + port config
+
 **UI hint**: yes
 
 ### Phase 2: Detection & Monitoring
+
 **Goal**: 检测流水线正确识别外部触发的攻击并区分攻击类型，LLM 深度分析给出准确判定，监控大屏实时刷新展示攻击信息
 **Mode:** mvp
 **Depends on**: Phase 1
 **Requirements**: DET-01, DET-02, DET-03
 **Success Criteria** (what must be TRUE):
+
   1. 外部攻击面板发起的攻击触发检测告警，攻击类型分类正确（SQL注入/XSS/CC/暴力破解/路径遍历）
   2. LLM 深度分析对真实攻击流量给出准确判定，能区分攻击流量与正常流量
   3. Streamlit 监控大屏自动刷新，无需手动操作即可看到新的攻击者 IP、攻击类型、告警级别
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 3: Rescue Response
+
 **Goal**: 严重攻击自动触发 SSH 救援操作，救援步骤和结果在监控大屏上实时可见，回滚机制正常工作
 **Mode:** mvp
 **Depends on**: Phase 2
 **Requirements**: RES-01, RES-02, RES-03
 **Success Criteria** (what must be TRUE):
+
   1. 严重攻击（CC 洪水或暴力破解）自动触发 SSH 救援（iptables IP 封禁或 nginx 规则重载）
   2. 监控大屏实时展示救援执行步骤（连接中 → 执行 playbook → 各步骤成功/失败状态）
   3. 回滚操作成功撤销救援动作（解除 IP 封禁、恢复 nginx 配置），通过重新测试连通性验证
+
 **Plans**: TBD
 **UI hint**: yes
 
 ### Phase 4: Report & Notification
+
 **Goal**: 每次攻击事件自动生成安全报告，邮件通知在真实攻击场景下正常工作
 **Mode:** mvp
 **Depends on**: Phase 2
 **Requirements**: RPT-01, RPT-02
 **Success Criteria** (what must be TRUE):
+
   1. 外部攻击事件被检测并处理后，自动生成包含事件时间线、攻击详情和响应措施的安全报告
   2. 邮件通知成功发送到配置的收件人，包含攻击摘要和报告引用
+
 **Plans**: TBD
 
 ## Progress
