@@ -54,9 +54,18 @@ echo "[OK] 容器运行中"
 
 # 等待容器就绪
 echo "[2/3] 等待容器就绪..."
-sleep 5
+sleep 10
 
 # 启动 Streamlit 界面
 echo "[3/3] 启动 Streamlit 监控界面..."
+cd "$(dirname "$0")"
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+fi
+if command -v xdg-open &> /dev/null; then
+    xdg-open http://localhost:8501 2>/dev/null &
+elif command -v open &> /dev/null; then
+    open http://localhost:8501 2>/dev/null &
+fi
 cd "$(dirname "$0")/src"
 streamlit run app.py

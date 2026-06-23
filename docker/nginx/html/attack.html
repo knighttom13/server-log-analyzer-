@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>攻击模拟面板</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1923;
+  --card-bg: #1a2736;
+  --border: #2a3a4a;
+  --text: #e0e6ed;
+  --text-dim: #8899aa;
+  --accent: #1a73e8;
+  --success: #27ae60;
+  --warning: #f39c12;
+  --danger: #e74c3c;
+  --pulse-yellow: #f39c12;
+}
+
+body {
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+}
+
+/* ── Header ── */
+.header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4da3ff, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.header p {
+  color: var(--text-dim);
+  margin-top: 6px;
+  font-size: 0.95rem;
+}
+
+/* ── Card Grid ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  width: 100%;
+  margin-bottom: 32px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.card:hover {
+  border-color: #3a5a7a;
+  box-shadow: 0 0 24px rgba(26,115,232,0.08);
+}
+.card .icon-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card .icon-row .icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+.card .icon-row .name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.card .desc {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  min-height: 2.5em;
+}
+.card .meta-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.card .meta-row .tag {
+  background: rgba(255,255,255,0.06);
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+}
+.card .meta-row .risk {
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+}
+.risk-high { background: rgba(231,76,60,0.15); color: #e74c3c; }
+.risk-medium { background: rgba(243,156,18,0.15); color: #f39c12; }
+
+.card .btn {
+  margin-top: auto;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.btn-ready    { background: var(--accent); }
+.btn-ready:hover { background: #1e85ff; }
+.btn-running  { background: #5a6470; cursor: not-allowed; opacity: 0.75; }
+.btn-done     { background: #27ae60; }
+.btn-done:hover { background: #2ecc71; }
+
+/* ── Status Panel ── */
+.status-panel {
+  max-width: 900px;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+}
+.status-panel h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-dim);
+}
+.status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.status-table th {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 500;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dot-idle    { background: var(--success); }
+.dot-running { background: var(--pulse-yellow); animation: pulse 0.8s ease-in-out infinite; }
+.dot-done    { background: var(--success); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--pulse-yellow); }
+  50%      { opacity: 0.3; box-shadow: 0 0 2px var(--pulse-yellow); }
+}
+.status-badge {
+  display: inline-block;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.badge-idle    { background: rgba(39,174,96,0.15); color: #27ae60; }
+.badge-running { background: rgba(243,156,18,0.15); color: #f39c12; }
+.badge-done    { background: rgba(39,174,96,0.15); color: #27ae60; }
+
+.stat-num { font-weight: 600; color: var(--text); }
+.stat-err { color: var(--danger); font-weight: 600; }
+
+/* ── Toast ── */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastIn 0.3s ease, toastOut 0.3s ease 3.5s forwards;
+  max-width: 360px;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error   { border-left: 3px solid var(--danger); }
+@keyframes toastIn  { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(60px); } }
+
+/* ── Footer ── */
+.footer {
+  margin-top: 24px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .header h1 { font-size: 1.5rem; }
+  .status-table { font-size: 0.76rem; }
+  .status-table th, .status-table td { padding: 8px 6px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <h1>🛡️ 攻击模拟面板</h1>
+  <p>选择攻击类型，一键发起真实攻击 · 监控大屏实时响应</p>
+</header>
+
+<!-- Attack Cards -->
+<div class="card-grid" id="card-grid">
+  <!-- JS render -->
+</div>
+
+<!-- Status Panel -->
+<div class="status-panel" id="status-panel">
+  <h2>📡 实时状态</h2>
+  <table class="status-table">
+    <thead>
+      <tr><th>攻击类型</th><th>状态</th><th>已发送</th><th>错误</th></tr>
+    </thead>
+    <tbody id="status-tbody">
+      <!-- JS render -->
+    </tbody>
+  </table>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" id="toast-container"></div>
+
+<footer class="footer">
+  AI-OPS 智能运维系统 · Server Log Intelligent Analyzer
+</footer>
+
+<script>
+// ============================================
+// 攻击类型数据 (内嵌，无需 API 请求)
+// ============================================
+const ATTACK_TYPES = [
+  { key: "sql_injection", display: "SQL注入扫描", icon: "💉",
+    desc: "模拟SQL注入探测，发送UNION SELECT、OR 1=1等特征payload",
+    risk: "高", riskClass: "risk-high",
+    threads: 5, requests: 100 },
+  { key: "xss", display: "XSS跨站脚本", icon: "⚠️",
+    desc: "模拟跨站脚本攻击，发送&lt;script&gt;、onerror等XSS payload",
+    risk: "中", riskClass: "risk-medium",
+    threads: 3, requests: 50 },
+  { key: "cc_flood", display: "CC并发洪水", icon: "🌊",
+    desc: "模拟CC攻击，大量并发线程高频请求服务器资源",
+    risk: "高", riskClass: "risk-high",
+    threads: 20, requests: 200 },
+  { key: "brute_force", display: "暴力破解", icon: "🔓",
+    desc: "模拟登录暴力破解，使用常见用户名密码字典批量尝试",
+    risk: "高", riskClass: "risk-high",
+    threads: 10, requests: 30 },
+];
+
+// 按钮状态 map
+let attackStates = {};
+ATTACK_TYPES.forEach(t => { attackStates[t.key] = { status: "idle", sent: 0, errors: 0 }; });
+
+// ============================================
+// Toast
+// ============================================
+function showToast(text, type) {
+  const container = document.getElementById("toast-container");
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = text;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+// ============================================
+// Launch
+// ============================================
+async function launchAttack(attackType) {
+  const state = attackStates[attackType];
+  if (state.status === "running") return;
+
+  const info = ATTACK_TYPES.find(t => t.key === attackType);
+  state.status = "running";
+  renderAll();
+
+  try {
+    const resp = await fetch("/api/attacks/launch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ attack_type: attackType }),
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      showToast(data.message || `🔥 ${info.display} 已启动`, "success");
+    } else {
+      state.status = "idle";
+      showToast(data.detail || "启动失败", "error");
+    }
+  } catch (e) {
+    state.status = "idle";
+    showToast("网络错误: " + e.message, "error");
+  }
+  renderAll();
+}
+
+// ============================================
+// Poll Status
+// ============================================
+async function pollStatus() {
+  try {
+    const resp = await fetch("/api/attacks/status");
+    if (!resp.ok) return;
+    const list = await resp.json();
+    let changed = false;
+    list.forEach(item => {
+      const state = attackStates[item.key];
+      if (!state) return;
+      const prevStatus = state.status;
+      state.status = item.status;
+      state.sent = item.sent;
+      state.errors = item.errors;
+      if (prevStatus !== item.status) changed = true;
+    });
+    if (changed) renderAll();
+    else renderStatusRows(); // 只更新数字
+  } catch (e) {
+    // 静默忽略轮询错误
+  }
+}
+
+// ============================================
+// Render
+// ============================================
+function getButtonClass(state) {
+  if (state.status === "running") return "btn-running";
+  if (state.status === "done") return "btn-done";
+  return "btn-ready";
+}
+
+function getButtonText(state, info) {
+  if (state.status === "running") return "⏳ 执行中...";
+  if (state.status === "done") return "🔄 再次发起";
+  return `🚀 发起攻击`;
+}
+
+function renderCards() {
+  const grid = document.getElementById("card-grid");
+  grid.innerHTML = ATTACK_TYPES.map(info => {
+    const state = attackStates[info.key];
+    const btnClass = getButtonClass(state);
+    const btnText = getButtonText(state, info);
+    const disabled = state.status === "running" ? "disabled" : "";
+    return `
+    <div class="card">
+      <div class="icon-row">
+        <span class="icon">${info.icon}</span>
+        <span class="name">${info.display}</span>
+      </div>
+      <div class="desc">${info.desc}</div>
+      <div class="meta-row">
+        <span class="tag">🧵 ${info.threads}线程</span>
+        <span class="tag">📨 ×${info.requests}请求</span>
+        <span class="risk ${info.riskClass}">⚠ ${info.risk}风险</span>
+      </div>
+      <button class="btn ${btnClass}" ${disabled}
+              onclick="launchAttack('${info.key}')">${btnText}</button>
+    </div>`;
+  }).join("");
+}
+
+function getStatusDot(status) {
+  const cls = status === "running" ? "dot-running" : status === "done" ? "dot-done" : "dot-idle";
+  return `<span class="status-dot ${cls}"></span>`;
+}
+
+function getStatusBadge(status) {
+  const label = status === "running" ? "执行中" : status === "done" ? "已完成" : "空闲";
+  const cls = status === "running" ? "badge-running" : status === "done" ? "badge-done" : "badge-idle";
+  return `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+function renderStatusRows() {
+  const tbody = document.getElementById("status-tbody");
+  tbody.innerHTML = ATTACK_TYPES.map(info => {
+    const state = attackStates[info.key];
+    return `
+    <tr>
+      <td>${info.icon} ${info.display}</td>
+      <td>${getStatusDot(state.status)} ${getStatusBadge(state.status)}</td>
+      <td><span class="stat-num">${state.sent.toLocaleString()}</span></td>
+      <td><span class="${state.errors > 0 ? 'stat-err' : 'stat-num'}">${state.errors.toLocaleString()}</span></td>
+    </tr>`;
+  }).join("");
+}
+
+function renderAll() {
+  renderCards();
+  renderStatusRows();
+}
+
+// ============================================
+// Init
+// ============================================
+renderAll();
+setInterval(pollStatus, 2000);
+</script>
+
+</body>
+</html>

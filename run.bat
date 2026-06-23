@@ -48,12 +48,10 @@ if "!CONTAINER_CMD!"=="docker" (
         goto :compose_done
     )
 ) else (
-    podman-compose --version >nul 2>&1
-    if !errorlevel! equ 0 (
-        set "COMPOSE_CMD=podman-compose"
-        goto :compose_done
-    )
     set "COMPOSE_CMD=podman compose"
+    podman compose version >nul 2>&1
+    if !errorlevel! equ 0 goto :compose_done
+    set "COMPOSE_CMD=podman-compose"
 )
 
 :compose_done
@@ -77,9 +75,12 @@ if !errorlevel! neq 0 (
 )
 echo [OK] Containers running
 
+REM Ensure nginx has fresh config
+podman exec log-analyzer-nginx nginx -s reload 2>nul
+
 REM Wait for containers to be ready
 echo [2/4] Waiting for containers to be ready...
-timeout /t 5 /nobreak >nul
+timeout /t 10 /nobreak >nul
 
 REM Activate venv (run setup.bat first if missing)
 echo [3/4] Activating Python virtual environment...

@@ -58,6 +58,24 @@ services:
     networks:
       - log-analyzer-net
 
+  # --- 攻击面板 API (FastAPI) ---
+  attack-api:
+    build:
+      context: ..
+      dockerfile: docker/attack-api/Dockerfile
+    container_name: log-analyzer-api
+    environment:
+      - CONTAINERIZED=true
+    ports:
+      - "9000:9000"
+    volumes:
+      - ../logs:/app/logs
+      - ../reports:/app/reports
+      - ../charts:/app/charts
+    restart: unless-stopped
+    networks:
+      - log-analyzer-net
+
 networks:
   log-analyzer-net:
     driver: bridge

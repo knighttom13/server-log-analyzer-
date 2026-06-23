@@ -275,6 +275,59 @@ def detect_attacks_in_logs(log_lines: list[str]):
                     print(f"[Detect] 🚑 自动救援触发: {rescue_task.task_id}")
                     report = report_gen.generate(alert, rescue_task)
                     st.session_state.report_content = report
+
+                    # 自动生成图表 + 发送邮件
+                    try:
+                        # 收集图表数据
+                        now = datetime.now()
+                        times = [e.timestamp for e in all_events if e.timestamp]
+                        times = sorted(times)
+
+                        # 请求趋势: 按分钟分桶统计
+                        if times:
+                            buckets = {}
+                            for t in times:
+                                key = t.replace(second=0, microsecond=0)
+                                buckets[key] = buckets.get(key, 0) + 1
+                            trend_times = sorted(buckets.keys())
+                            trend_counts = [buckets[k] for k in trend_times]
+                        else:
+                            trend_times = [now - timedelta(minutes=i) for i in range(5, 0, -1)]
+                            trend_counts = [0] * 5
+
+                        chart_paths = []
+                        # 图表1: 请求趋势 (带攻击爆发标注)
+                        markers = [{"time": alert.timestamp, "label": f"{alert.attack_type}攻击"}]
+                        path1 = generate_error_trend_chart(trend_times, trend_counts, attack_markers=markers)
+                        chart_paths.append(path1)
+                        print(f"[Detect] 📈 趋势图表已生成: {path1}")
+
+                        # 图表2: 攻击类型分布 (从历史告警统计)
+                        atype_counts = {}
+                        for a in st.session_state.alerts:
+                            atype_counts[a.attack_type] = atype_counts.get(a.attack_type, 0) + 1
+                        if alert.attack_type not in atype_counts:
+                            atype_counts[alert.attack_type] = 1
+                        path2 = generate_attack_pie_chart(atype_counts)
+                        chart_paths.append(path2)
+                        print(f"[Detect] 📊 攻击饼图已生成: {path2}")
+
+                        # 图表3: IP 请求统计 (攻击IP高亮)
+                        ip_counts = {}
+                        for e in all_events:
+                            if e.source_ip:
+                                ip_counts[e.source_ip] = ip_counts.get(e.source_ip, 0) + 1
+                        if alert.source_ip not in ip_counts:
+                            ip_counts[alert.source_ip] = len(all_events) // 2 if all_events else 1
+                        path3 = generate_ip_bar_chart(ip_counts, highlight_ip=alert.source_ip)
+                        chart_paths.append(path3)
+                        print(f"[Detect] 📊 IP柱状图已生成: {path3}")
+
+                        # 自动发送邮件
+                        print(f"[Detect] 📧 发送告警邮件到 {email_sender.alert_email}...")
+                        email_sender.send_alert_email(alert, report, chart_paths=chart_paths)
+                    except Exception as e:
+                        print(f"[Detect] ⚠ 图表/邮件生成失败 (不阻塞检测): {e}")
         else:
             print(f"[Detect] ⚠ {attack_type}: LLM判断非攻击或分析失败")
 
