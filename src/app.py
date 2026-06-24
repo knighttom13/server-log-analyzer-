@@ -278,9 +278,9 @@ def detect_attacks_in_logs(log_lines: list[str]):
 
                     # 自动生成图表 + 发送邮件
                     try:
-                        # 收集图表数据
+                        # 收集图表数据（events 是函数内解析的所有日志事件）
                         now = datetime.now()
-                        times = [e.timestamp for e in all_events if e.timestamp]
+                        times = [e.timestamp for e in events if e.timestamp]
                         times = sorted(times)
 
                         # 请求趋势: 按分钟分桶统计
@@ -314,20 +314,29 @@ def detect_attacks_in_logs(log_lines: list[str]):
 
                         # 图表3: IP 请求统计 (攻击IP高亮)
                         ip_counts = {}
-                        for e in all_events:
-                            if e.source_ip:
-                                ip_counts[e.source_ip] = ip_counts.get(e.source_ip, 0) + 1
+                        for e in events:
+                            if e.ip:
+                                ip_counts[e.ip] = ip_counts.get(e.ip, 0) + 1
                         if alert.source_ip not in ip_counts:
-                            ip_counts[alert.source_ip] = len(all_events) // 2 if all_events else 1
+                            ip_counts[alert.source_ip] = len(events) // 2 if events else 1
                         path3 = generate_ip_bar_chart(ip_counts, highlight_ip=alert.source_ip)
                         chart_paths.append(path3)
                         print(f"[Detect] 📊 IP柱状图已生成: {path3}")
 
                         # 自动发送邮件
-                        print(f"[Detect] 📧 发送告警邮件到 {email_sender.alert_email}...")
-                        email_sender.send_alert_email(alert, report, chart_paths=chart_paths)
+                        if email_sender.smtp_user in ("", "your-email@qq.com") or \
+                           email_sender.smtp_password in ("", "your-auth-code"):
+                            print(f"[Detect] ⚠ SMTP 未配置 (使用占位凭证), 跳过邮件发送")
+                            print(f"[Detect] 💡 请在 .env 中设置 SMTP_USER / SMTP_PASSWORD / ALERT_EMAIL")
+                        else:
+                            print(f"[Detect] 📧 发送告警邮件到 {email_sender.alert_email}...")
+                            ok = email_sender.send_alert_email(alert, report, chart_paths=chart_paths)
+                            if not ok:
+                                print(f"[Detect] ⚠ 邮件发送失败，请检查 SMTP 配置")
                     except Exception as e:
-                        print(f"[Detect] ⚠ 图表/邮件生成失败 (不阻塞检测): {e}")
+                        import traceback
+                        print(f"[Detect] ⚠ 图表/邮件生成异常 (不阻塞检测): {type(e).__name__}: {e}")
+                        traceback.print_exc()
         else:
             print(f"[Detect] ⚠ {attack_type}: LLM判断非攻击或分析失败")
 
