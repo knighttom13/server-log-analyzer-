@@ -285,7 +285,7 @@ def detect_attacks_in_logs(log_lines: list[str]):
                 try:
                     # 收集图表数据
                     now = datetime.now()
-                    times = [e.timestamp for e in all_events if e.timestamp]
+                    times = [e.timestamp for e in events if e.timestamp]
                     times = sorted(times)
 
                     # 请求趋势: 按分钟分桶统计
@@ -319,11 +319,11 @@ def detect_attacks_in_logs(log_lines: list[str]):
 
                     # 图表3: IP 请求统计 (攻击IP高亮)
                     ip_counts = {}
-                    for e in all_events:
-                        if e.source_ip:
-                            ip_counts[e.source_ip] = ip_counts.get(e.source_ip, 0) + 1
+                    for e in events:
+                        if e.ip:
+                            ip_counts[e.ip] = ip_counts.get(e.ip, 0) + 1
                     if alert.source_ip not in ip_counts:
-                        ip_counts[alert.source_ip] = len(all_events) // 2 if all_events else 1
+                        ip_counts[alert.source_ip] = len(events) // 2 if events else 1
                     path3 = generate_ip_bar_chart(ip_counts, highlight_ip=alert.source_ip)
                     chart_paths.append(path3)
                     print(f"[Detect] 📊 IP柱状图已生成: {path3}")
