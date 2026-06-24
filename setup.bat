@@ -2,62 +2,66 @@
 chcp 65001 >nul 2>&1
 setlocal
 
+title AI-OPS Environment Setup
+
 echo ==========================================
-echo   AI-OPS 环境初始化
+echo   AI-OPS Environment Setup
 echo ==========================================
 echo.
 
-REM ── 1. 检查 Python ──
-echo [1/3] 检查 Python...
+REM -- 1. Check Python --
+echo [1/3] Checking Python...
 python --version >nul 2>&1
-if !errorlevel! neq 0 (
-    echo [ERROR] 未找到 Python，请先安装 Python 3.10+
+if errorlevel 1 (
+    echo [ERROR] Python not found. Please install Python 3.10+
+    echo.
+    echo   Download: https://www.python.org/downloads/
     pause
     exit /b 1
 )
 for /f "tokens=2" %%v in ('python --version 2^>^&1') do echo [OK] Python %%v
 
-REM ── 2. 创建虚拟环境 ──
+REM -- 2. Create virtual environment --
 echo.
-echo [2/3] 创建虚拟环境...
+echo [2/3] Creating virtual environment...
 if exist "%~dp0venv" (
-    echo [SKIP] venv 已存在，跳过
+    echo [SKIP] venv already exists, skipping
 ) else (
     python -m venv "%~dp0venv"
-    if !errorlevel! neq 0 (
-        echo [ERROR] 创建 venv 失败
+    if errorlevel 1 (
+        echo [ERROR] Failed to create venv
         pause
         exit /b 1
     )
-    echo [OK] venv 创建完成
+    echo [OK] venv created
 )
 
-REM ── 3. 安装依赖 ──
+REM -- 3. Install dependencies --
 echo.
-echo [3/3] 安装 Python 依赖...
+echo [3/3] Installing Python dependencies...
 call "%~dp0venv\Scripts\activate.bat"
 pip install -r "%~dp0requirements.txt" -q
-if !errorlevel! neq 0 (
-    echo [ERROR] 依赖安装失败，请检查网络连接
+if errorlevel 1 (
+    echo [ERROR] Failed to install dependencies. Check your network.
     pause
     exit /b 1
 )
-echo [OK] 依赖安装完成
+echo [OK] Dependencies installed
 
-REM ── 检查 .env ──
+REM -- Check .env --
 echo.
 if not exist "%~dp0.env" (
-    echo [WARN] 未找到 .env 文件，复制模板...
+    echo [WARN] .env not found, copying from template...
     copy "%~dp0.env.example" "%~dp0.env" >nul
-    echo [TODO] 请编辑 .env 填入你的 DeepSeek API Key 和邮箱配置
+    echo [TODO] Please edit .env to add your DeepSeek API Key and email config
 ) else (
-    echo [INFO] .env 已存在，跳过
+    echo [INFO] .env exists, skipping
 )
 
 echo.
 echo ==========================================
-echo   初始化完成！
-echo   如需配置 API Key，请编辑 .env 文件
-echo   然后运行 run.bat 启动项目
+echo   Setup complete!
+echo   Edit .env to configure API Key
+echo   Then run run.bat to start the project
 echo ==========================================
 pause
