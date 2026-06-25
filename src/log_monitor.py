@@ -148,7 +148,11 @@ def parse_nginx_access_line(line: str) -> Optional[LogEvent]:
         return None
 
     try:
-        ts = datetime.strptime(match.group("timestamp"), "%d/%b/%Y:%H:%M:%S %z").replace(tzinfo=None)
+        ts = datetime.strptime(match.group("timestamp"), "%d/%b/%Y:%H:%M:%S %z")
+        # UTC转本地时间 (中国 UTC+8)
+        from datetime import timezone, timedelta
+        local_tz = timezone(timedelta(hours=8))
+        ts = ts.astimezone(local_tz).replace(tzinfo=None)
     except ValueError:
         ts = datetime.now()
 
