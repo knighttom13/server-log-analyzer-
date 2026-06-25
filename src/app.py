@@ -255,8 +255,8 @@ def detect_attacks_in_logs(log_lines: list[str]):
                 llm_result = None
             print(f"[Detect] ({attack_type}) 命中LLM缓存")
 
-        # 创建告警 (使用 session_state 管理的去重缓存)
-        if llm_result and llm_result.is_attack:
+        # 创建告警：规则引擎命中即可创建，不依赖LLM结果
+        if type_matches:
             alert = alert_mgr.create_alert(
                 type_events, type_matches, llm_result,
                 dedup_cache=st.session_state.dedup_cache,
@@ -269,6 +269,7 @@ def detect_attacks_in_logs(log_lines: list[str]):
                       f"{alert.attack_type} | {alert.severity.value}")
 
                 # 仅严重告警(CRITICAL)自动触发救援
+                rescue_task = None
                 if alert.severity == Severity.CRITICAL:
                     rescue_task = rescue_exec.execute_rescue(alert)
                     st.session_state.rescue_tasks.append(rescue_task)
@@ -277,7 +278,7 @@ def detect_attacks_in_logs(log_lines: list[str]):
                     print(f"[Detect] ⚠ {alert.severity.value}级别告警，需人工处理")
 
                 # 生成分析报告（所有级别都生成）
-                report = report_gen.generate(alert, rescue_task if alert.severity == Severity.CRITICAL else None)
+                report = report_gen.generate(alert, rescue_task)
                 st.session_state.report_content = report
                 print(f"[Detect] 📄 报告已生成: {alert.alert_id}")
 
@@ -285,7 +286,7 @@ def detect_attacks_in_logs(log_lines: list[str]):
                 try:
                     # 收集图表数据
                     now = datetime.now()
-                    times = [e.timestamp for e in all_events if e.timestamp]
+                    times = [e.timestamp for e in events if e.timestamp]
                     times = sorted(times)
 
                     # 请求趋势: 按分钟分桶统计
@@ -319,11 +320,11 @@ def detect_attacks_in_logs(log_lines: list[str]):
 
                     # 图表3: IP 请求统计 (攻击IP高亮)
                     ip_counts = {}
-                    for e in all_events:
-                        if e.source_ip:
-                            ip_counts[e.source_ip] = ip_counts.get(e.source_ip, 0) + 1
+                    for e in events:
+                        if e.ip:
+                            ip_counts[e.ip] = ip_counts.get(e.ip, 0) + 1
                     if alert.source_ip not in ip_counts:
-                        ip_counts[alert.source_ip] = len(all_events) // 2 if all_events else 1
+                        ip_counts[alert.source_ip] = len(events) // 2 if events else 1
                     path3 = generate_ip_bar_chart(ip_counts, highlight_ip=alert.source_ip)
                     chart_paths.append(path3)
                     print(f"[Detect] 📊 IP柱状图已生成: {path3}")
@@ -636,12 +637,23 @@ elif page == "📈 趋势图表":
 
     with tab3:
         st.subheader("IP 请求量统计")
-        st.caption("模拟演示数据（所有攻击来自同一IP，维持原状）")
-        path = generate_ip_bar_chart({
-            "192.168.1.5": 30, "192.168.1.6": 25, "192.168.1.7": 28,
-            "10.0.0.100": 500, "192.168.1.9": 22,
-        }, highlight_ip="10.0.0.100")
-        st.image(path, width="stretch")
+        # 从真实日志统计IP请求量
+        ip_counts = {}
+        for line in all_log_lines:
+            event = parse_nginx_access_line(line)
+            if event and event.ip:
+                ip_counts[event.ip] = ip_counts.get(event.ip, 0) + 1
+        if ip_counts:
+            # 按请求数排序，取前10
+            sorted_ips = sorted(ip_counts.items(), key=lambda x: -x[1])[:10]
+            top_ips = dict(sorted_ips)
+            # 找出请求最多的IP作为攻击IP
+            attack_ip = sorted_ips[0][0] if sorted_ips else None
+            st.caption(f"共 {len(ip_counts)} 个不同IP，{sum(ip_counts.values())} 次请求")
+            path = generate_ip_bar_chart(top_ips, highlight_ip=attack_ip)
+            st.image(path, width="stretch")
+        else:
+            st.caption("暂无IP统计数据")
 
     # 救援任务历史
     st.divider()
