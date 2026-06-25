@@ -1,3 +1,5 @@
+version: "3.8"
+
 # ============================================
 # 服务器日志智能分析 —— Docker 容器环境
 # 一键启动：docker-compose up -d
@@ -52,6 +54,24 @@ services:
       - "2222:22"
     volumes:
       - ../logs/ssh:/var/log                   # 挂载日志目录到宿主机
+    restart: unless-stopped
+    networks:
+      - log-analyzer-net
+
+  # --- 攻击面板 API (FastAPI) ---
+  attack-api:
+    build:
+      context: ..
+      dockerfile: docker/attack-api/Dockerfile
+    container_name: log-analyzer-api
+    environment:
+      - CONTAINERIZED=true
+    ports:
+      - "9000:9000"
+    volumes:
+      - ../logs:/app/logs
+      - ../reports:/app/reports
+      - ../charts:/app/charts
     restart: unless-stopped
     networks:
       - log-analyzer-net
