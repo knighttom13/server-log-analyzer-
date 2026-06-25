@@ -268,7 +268,7 @@ def detect_attacks_in_logs(log_lines: list[str]):
                 print(f"[Detect] ✅ 告警创建成功: {alert.alert_id} | "
                       f"{alert.attack_type} | {alert.severity.value}")
 
-                # 自动救援（仅CRITICAL级别）
+                # 仅严重告警(CRITICAL)自动触发救援
                 rescue_task = None
                 if alert.severity == Severity.CRITICAL:
                     rescue_task = rescue_exec.execute_rescue(alert)

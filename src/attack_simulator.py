@@ -84,14 +84,23 @@ class AttackSimulator:
         self.session = requests.Session()
 
     # ============================================
+    # 随机IP生成
+    # ============================================
+    @staticmethod
+    def _random_ip():
+        """生成随机内网IP"""
+        prefix = random.choice(["10.0", "172.16", "192.168"])
+        return f"{prefix}.{random.randint(1, 254)}.{random.randint(1, 254)}"
+
+    # ============================================
     # SQL 注入攻击
     # ============================================
-    def _sql_injection_worker(self, attacker_ip: str, count: int, delay: float):
+    def _sql_injection_worker(self, count: int, delay: float):
         """SQL注入攻击线程"""
         stats = {"sent": 0, "errors": 0}
         for i in range(count):
             payload = random.choice(SQL_INJECTION_PAYLOADS)
-            headers = {"X-Forwarded-For": attacker_ip}
+            headers = {"X-Forwarded-For": self._random_ip()}
             try:
                 resp = self.session.get(
                     f"{self.base_url}{payload}",
@@ -104,17 +113,17 @@ class AttackSimulator:
             time.sleep(delay)
         self.attack_stats["sql_injection"] = stats
 
-    def launch_sql_injection(self, attacker_ip: str = "10.0.0.100"):
+    def launch_sql_injection(self, attacker_ip: str = None):
         """启动 SQL 注入攻击"""
         config = ATTACK_CONFIG["sql_injection"]
         console.print(f"\n[bold red]💉 SQL注入扫描攻击 启动！[/bold red]")
-        console.print(f"   攻击IP: {attacker_ip} | 线程: {config['threads']} | 每线程请求: {config['requests_per_thread']}")
+        console.print(f"   线程: {config['threads']} | 每线程请求: {config['requests_per_thread']} | 随机IP")
 
         threads = []
         for i in range(config["threads"]):
             t = threading.Thread(
                 target=self._sql_injection_worker,
-                args=(attacker_ip, config["requests_per_thread"], config["delay_between_requests"]),
+                args=(config["requests_per_thread"], config["delay_between_requests"]),
                 daemon=True,
             )
             threads.append(t)
@@ -130,12 +139,12 @@ class AttackSimulator:
     # ============================================
     # XSS 攻击
     # ============================================
-    def _xss_worker(self, attacker_ip: str, count: int, delay: float):
+    def _xss_worker(self, count: int, delay: float):
         """XSS攻击线程"""
         stats = {"sent": 0, "errors": 0}
         for i in range(count):
             payload = random.choice(XSS_PAYLOADS)
-            headers = {"X-Forwarded-For": attacker_ip}
+            headers = {"X-Forwarded-For": self._random_ip()}
             try:
                 resp = self.session.get(
                     f"{self.base_url}{payload}",
@@ -148,17 +157,17 @@ class AttackSimulator:
             time.sleep(delay)
         self.attack_stats["xss"] = stats
 
-    def launch_xss(self, attacker_ip: str = "10.0.0.200"):
+    def launch_xss(self, attacker_ip: str = None):
         """启动 XSS 攻击"""
         config = ATTACK_CONFIG["xss"]
         console.print(f"\n[bold yellow]⚠ XSS 跨站脚本攻击 启动！[/bold yellow]")
-        console.print(f"   攻击IP: {attacker_ip} | 线程: {config['threads']} | 每线程请求: {config['requests_per_thread']}")
+        console.print(f"   线程: {config['threads']} | 每线程请求: {config['requests_per_thread']} | 随机IP")
 
         threads = []
         for i in range(config["threads"]):
             t = threading.Thread(
                 target=self._xss_worker,
-                args=(attacker_ip, config["requests_per_thread"], config["delay_between_requests"]),
+                args=(config["requests_per_thread"], config["delay_between_requests"]),
                 daemon=True,
             )
             threads.append(t)
@@ -169,12 +178,12 @@ class AttackSimulator:
     # ============================================
     # CC 并发洪水攻击
     # ============================================
-    def _cc_flood_worker(self, attacker_ip: str, count: int, delay: float):
+    def _cc_flood_worker(self, count: int, delay: float):
         """CC洪水攻击线程"""
         stats = {"sent": 0, "errors": 0}
         for i in range(count):
             payload = random.choice(CC_PAYLOADS)
-            headers = {"X-Forwarded-For": attacker_ip}
+            headers = {"X-Forwarded-For": self._random_ip()}
             try:
                 resp = self.session.get(
                     f"{self.base_url}{payload}",
@@ -188,17 +197,17 @@ class AttackSimulator:
                 time.sleep(delay)
         self.attack_stats["cc_flood"] = stats
 
-    def launch_cc_flood(self, attacker_ip: str = "10.0.0.50"):
+    def launch_cc_flood(self, attacker_ip: str = None):
         """启动 CC 并发洪水攻击"""
         config = ATTACK_CONFIG["cc_flood"]
         console.print(f"\n[bold red]🌊 CC并发洪水攻击 启动！[/bold red]")
-        console.print(f"   攻击IP: {attacker_ip} | 线程: {config['threads']} | 每线程请求: {config['requests_per_thread']}")
+        console.print(f"   线程: {config['threads']} | 每线程请求: {config['requests_per_thread']} | 随机IP")
 
         threads = []
         for i in range(config["threads"]):
             t = threading.Thread(
                 target=self._cc_flood_worker,
-                args=(attacker_ip, config["requests_per_thread"], config["delay_between_requests"]),
+                args=(config["requests_per_thread"], config["delay_between_requests"]),
                 daemon=True,
             )
             threads.append(t)
@@ -209,14 +218,14 @@ class AttackSimulator:
     # ============================================
     # SSH 暴力破解
     # ============================================
-    def _brute_force_worker(self, attacker_ip: str, count: int, delay: float):
+    def _brute_force_worker(self, count: int, delay: float):
         """暴力破解线程 - 模拟大量登录失败"""
         stats = {"sent": 0, "errors": 0}
         for i in range(count):
             username = random.choice(BRUTE_FORCE_USERNAMES)
             password = random.choice(BRUTE_FORCE_PASSWORDS)
             headers = {
-                "X-Forwarded-For": attacker_ip,
+                "X-Forwarded-For": self._random_ip(),
                 "User-Agent": "Mozilla/5.0 (hydra brute force tool)",
             }
             try:
@@ -232,17 +241,17 @@ class AttackSimulator:
             time.sleep(delay)
         self.attack_stats["brute_force"] = stats
 
-    def launch_brute_force(self, attacker_ip: str = "172.16.0.100"):
+    def launch_brute_force(self, attacker_ip: str = None):
         """启动暴力破解攻击"""
         config = ATTACK_CONFIG["brute_force"]
         console.print(f"\n[bold magenta]🔓 SSH暴力破解攻击 启动！[/bold magenta]")
-        console.print(f"   攻击IP: {attacker_ip} | 线程: {config['threads']} | 每线程尝试: {config['attempts_per_thread']}")
+        console.print(f"   线程: {config['threads']} | 每线程尝试: {config['attempts_per_thread']} | 随机IP")
 
         threads = []
         for i in range(config["threads"]):
             t = threading.Thread(
                 target=self._brute_force_worker,
-                args=(attacker_ip, config["attempts_per_thread"], config["delay_between_attempts"]),
+                args=(config["attempts_per_thread"], config["delay_between_attempts"]),
                 daemon=True,
             )
             threads.append(t)
