@@ -102,7 +102,7 @@ server-log-analyzer/
 |------|------|---------|
 | A (组长) | 架构 + Docker + 集成 | docker-compose, playbooks.yaml, 联调 |
 | B | 攻击仿真 | log_simulator, attack_simulator, scenarios |
-| C | AI检测引擎 | log_monitor, rule_engine, llm_analyzer |
+| C | AI检测引擎 | log_monitor,rule_engine,llm_analyzer |
 | D | 响应呈现 | rescue_executor, report/chart/email, Streamlit |
 
 ## 技术栈
